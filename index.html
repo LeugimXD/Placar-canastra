@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Placar da Canastra</title>
+<meta name="description" content="Marcador de pontos da canastra para dois jogadores.">
+<meta name="theme-color" content="#1d5a43">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Canastra">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+/* Layout: uma coluna de celular; placar dos dois sempre no topo, ação principal num botão grande fixo embaixo. */
+:root {
+  --bg: #e9eee9;
+  --surface: #ffffff;
+  --surface-2: #f3f6f2;
+  --ink: #15201a;
+  --muted: #5b6a61;
+  --line: #d3dcd5;
+  --felt: #1d5a43;
+  --felt-ink: #ffffff;
+  --p0: #c2323a;
+  --p0-soft: #fbe6e6;
+  --p1: #1e3a70;
+  --p1-soft: #e3e9f6;
+  --warn: #9a5b00;
+  --warn-soft: #fff1d6;
+  --ok: #1d7a4c;
+  --shadow: 0 1px 2px rgba(20, 40, 30, .08), 0 6px 18px rgba(20, 40, 30, .07);
+  --f-num: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1512; --surface: #18221d; --surface-2: #1f2b25; --ink: #e8efea; --muted: #94a59b; --line: #2c3a33;
+    --felt: #3fa57c; --felt-ink: #06140e; --p0: #f0676d; --p0-soft: #3a1f22; --p1: #86a8ec; --p1-soft: #1d2740;
+    --warn: #f0b14a; --warn-soft: #362a14; --ok: #5fd39a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1512; --surface: #18221d; --surface-2: #1f2b25; --ink: #e8efea; --muted: #94a59b; --line: #2c3a33;
+  --felt: #3fa57c; --felt-ink: #06140e; --p0: #f0676d; --p0-soft: #3a1f22; --p1: #86a8ec; --p1-soft: #1d2740;
+  --warn: #f0b14a; --warn-soft: #362a14; --ok: #5fd39a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.4; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--felt); outline-offset: 2px; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.app { max-width: 540px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 132px; display: flex; flex-direction: column; gap: 16px; }
+.c0 { color: var(--p0); } .c1 { color: var(--p1); }
+
+/* Cabeçalho */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
+.marca { font-family: var(--f-num); font-weight: 800; font-size: 26px; letter-spacing: .02em; text-transform: uppercase; display: flex; gap: 8px; align-items: baseline; }
+.marca small { font-family: var(--f-body); font-size: 13px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.icone { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: var(--surface); box-shadow: var(--shadow); }
+
+/* Placar */
+.placar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.score { position: relative; background: var(--surface); border-radius: var(--r); padding: 14px 14px 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; min-width: 0; border-top: 5px solid var(--pc); }
+.score.p0 { --pc: var(--p0); --ps: var(--p0-soft); } .score.p1 { --pc: var(--p1); --ps: var(--p1-soft); }
+.score-nome { display: flex; gap: 6px; align-items: center; font-weight: 700; font-size: 17px; min-width: 0; }
+.score-nome span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.naipe { color: var(--pc); font-size: 1.15em; line-height: 1; }
+.score-num { font-size: clamp(52px, 16vw, 80px); font-weight: 800; line-height: .95; color: var(--ink); }
+.barra { position: relative; height: 8px; background: var(--surface-2); border-radius: 99px; overflow: visible; }
+.barra i { position: absolute; inset: 0 auto 0 0; background: var(--pc); border-radius: 99px; transition: width .5s ease; }
+.barra b { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--muted); left: 50%; opacity: .6; }
+.score-foot { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); width: fit-content; }
+.lider::after { content: "na frente"; position: absolute; top: 10px; right: 12px; font-size: 11px; font-weight: 700; color: var(--pc); text-transform: uppercase; letter-spacing: .06em; }
+
+/* Barra de ação fixa */
+.acao { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: linear-gradient(to top, var(--bg) 70%, transparent); padding-top: 18px; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.acao-in { max-width: 540px; margin: 0 auto; display: flex; gap: 10px; }
+.btn { min-height: 56px; border-radius: 16px; padding: 0 18px; font-weight: 700; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform .08s ease, background .15s; }
+.btn:active { transform: scale(.97); }
+.btn-pri { background: var(--felt); color: var(--felt-ink); flex: 1; box-shadow: var(--shadow); }
+.btn-sec { background: var(--surface); box-shadow: var(--shadow); }
+.btn-txt { min-height: 44px; font-size: 15px; font-weight: 600; color: var(--muted); padding: 0 10px; }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+
+/* Histórico */
+.secao-t { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.secao-t h2 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rod { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.rod-head { width: 100%; display: grid; grid-template-columns: 44px 1fr auto auto; align-items: center; gap: 10px; padding: 12px 14px; text-align: left; min-height: 56px; }
+.rod-n { font-family: var(--f-num); font-weight: 800; font-size: 22px; color: var(--muted); }
+.rod-bat { font-size: 14px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rod-pts { font-family: var(--f-num); font-weight: 800; font-size: 24px; min-width: 64px; text-align: right; }
+.rod-det { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.vazio { text-align: center; color: var(--muted); padding: 22px 12px; background: var(--surface); border-radius: 14px; border: 1.5px dashed var(--line); }
+
+/* Tabela de resultado */
+.tab { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tab th, .tab td { padding: 9px 4px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+.tab th:first-child, .tab td:first-child { text-align: left; color: var(--muted); font-weight: 500; }
+.tab thead th { font-size: 14px; font-weight: 700; color: var(--ink); }
+.tab td { font-weight: 600; }
+.tab tr.tot td { font-family: var(--f-num); font-size: 26px; font-weight: 800; border-bottom: 0; color: var(--ink); }
+.tab tr.tot td:first-child { font-family: var(--f-body); font-size: 15px; font-weight: 700; }
+.tab tr.acum td { font-size: 14px; color: var(--muted); border-bottom: 0; }
+.tab .sub td { font-size: 13px; color: var(--muted); font-weight: 500; padding-top: 0; }
+.tab .sub td:first-child { padding-left: 14px; }
+
+/* Contagem */
+.live { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-block: 8px; background: var(--bg); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 16; background: var(--bg); }
+.live-p { background: var(--surface); border-radius: 14px; padding: 8px 12px; box-shadow: var(--shadow); display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 8px; border-left: 4px solid var(--pc); min-width: 0; }
+.live-p.p0 { --pc: var(--p0); } .live-p.p1 { --pc: var(--p1); }
+.live-nome { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-rod { font-family: var(--f-num); font-size: 30px; font-weight: 800; color: var(--pc); grid-row: span 2; display: inline-block; }
+.live-tot { font-size: 12px; color: var(--muted); }
+.bump { animation: bump .35s ease; }
+@keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.22); } 100% { transform: scale(1); } }
+.titulo { font-size: 24px; font-weight: 700; margin: 4px 0 0; text-wrap: balance; }
+.dica { color: var(--muted); font-size: 14px; margin: 0; }
+
+.bater { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bater button { min-height: 168px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; border: 3px solid transparent; transition: transform .1s, background .15s, border-color .15s; min-width: 0; }
+.bater button:active { transform: scale(.97); }
+.bater .p0 { --pc: var(--p0); --ps: var(--p0-soft); } .bater .p1 { --pc: var(--p1); --ps: var(--p1-soft); }
+.bater .grande { font-size: 54px; color: var(--pc); line-height: 1; }
+.bater .nm { font-size: 20px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bater .mais { font-family: var(--f-num); font-weight: 800; font-size: 22px; color: var(--muted); }
+.bater button.sel { background: var(--ps); border-color: var(--pc); }
+.bater button.sel .mais { color: var(--pc); }
+
+
+.bloco { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.bloco-t { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.bloco-t h3 { margin: 0; font-size: 17px; }
+.bloco-t .v { font-family: var(--f-num); font-weight: 800; font-size: 26px; }
+.pts { font-family: var(--f-num); font-weight: 800; font-size: 22px; min-width: 52px; text-align: right; }
+.aviso { background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+.nota { background: var(--surface-2); border-radius: 12px; padding: 12px; font-size: 15px; color: var(--muted); }
+
+.etapa { display: flex; flex-direction: column; gap: 10px; }
+.etapa-t { margin: 6px 0 0; font-size: 19px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.etapa-t span { width: 28px; height: 28px; border-radius: 50%; background: var(--felt); color: var(--felt-ink); display: inline-grid; place-items: center; font-size: 15px; }
+.etapa-t small { color: var(--muted); font-size: 14px; font-weight: 500; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pin { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 10px 14px 6px; display: flex; flex-direction: column; min-width: 0; border-bottom: 4px solid var(--pc); cursor: text; }
+.pin.p0 { --pc: var(--p0); } .pin.p1 { --pc: var(--p1); }
+.pin:focus-within { box-shadow: 0 0 0 3px var(--pc); }
+.pin-rot { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pin-mao .pin-rot { white-space: normal; }
+.pin-rot small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+.pin input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 0; min-height: 56px; font-family: var(--f-num); font-size: 44px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pin input:focus-visible { outline: none; }
+.pin input::placeholder { color: var(--line); }
+.bater button { min-height: 116px; }
+.bater .grande { font-size: 40px; }
+
+/* Configuração */
+.setup { display: flex; flex-direction: column; gap: 18px; padding-top: 8vh; }
+.setup h1 { font-family: var(--f-num); font-size: 56px; line-height: .9; margin: 0; text-transform: uppercase; letter-spacing: .01em; }
+.setup h1 span { display: block; font-size: 22px; font-family: var(--f-body); text-transform: none; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.campo { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 6px 6px 6px 16px; box-shadow: var(--shadow); }
+.campo .naipe { font-size: 30px; }
+.campo.p0 { --pc: var(--p0); } .campo.p1 { --pc: var(--p1); }
+.campo input { flex: 1; min-width: 0; min-height: 52px; border: 0; background: transparent; font: inherit; font-size: 20px; font-weight: 600; color: var(--ink); }
+.campo input::placeholder { color: var(--muted); font-weight: 500; }
+.regras { font-size: 14px; color: var(--muted); display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; }
+.regras b { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Camadas */
+.veu { position: fixed; inset: 0; z-index: 40; background: rgba(8, 16, 12, .5); display: flex; align-items: flex-end; justify-content: center; }
+.folha { width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; background: var(--bg); border-radius: 24px 24px 0 0; padding-top: 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; animation: sobe .2s ease; }
+.folha h2 { margin: 0; font-size: 22px; }
+@keyframes sobe { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.dialogo { align-items: center; padding: 16px; }
+.dialogo .folha { border-radius: 22px; max-width: 420px; padding: 20px; }
+.dialogo p { margin: 0; color: var(--muted); }
+.botoes { display: flex; gap: 10px; }
+.botoes .btn { flex: 1; }
+.btn-perigo { background: var(--p0); color: #fff; }
+.vitoria { text-align: center; align-items: center; }
+.vitoria .grande { font-size: 84px; line-height: 1; }
+.vitoria .placar-final { font-family: var(--f-num); font-size: 44px; font-weight: 800; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 50; width: calc(100% - 32px); max-width: 500px; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; font-weight: 600; box-shadow: var(--shadow); animation: sobe .2s ease; }
+.toast span { flex: 1; }
+.toast button { color: var(--bg); font-weight: 800; text-decoration: underline; min-height: 40px; padding: 0 6px; }
+.banner { background: var(--warn-soft); color: var(--warn); border-radius: 14px; padding: 12px 14px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.banner.ganhou { background: var(--felt); color: var(--felt-ink); }
+.banner span { flex: 1; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+.linha { display: flex; align-items: center; gap: 10px; min-height: 52px; }
+.linha + .linha { border-top: 1px solid var(--line); padding-top: 8px; }
+.rot { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rot small { color: var(--muted); font-size: 13px; }
+@media (max-width: 370px) { .pin input { font-size: 38px; } .pin { padding-inline: 10px; } }
+</style>
+
+</head>
+<body>
+<main class="app" id="app"></main>
+<div id="camada"></div>
+<div id="toast"></div>
+
+<script src="scoring.js"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.Canastra;
+  var NAIPE = ["♥", "♠"];
+  var CHAVE = "canastra-placar-v1";
+
+  var $app = document.getElementById("app");
+  var $camada = document.getElementById("camada");
+  var $toast = document.getElementById("toast");
+
+  var estado = carregarLocal() || { v: 1, atualizadoEm: 0, partida: null, arquivo: [], rascunho: null };
+  if (estado.rascunho && estado.rascunho.rodada && estado.rascunho.rodada.modo !== "totais") estado.rascunho = { rodada: K.paraTotais(estado.rascunho.rodada), editando: estado.rascunho.editando };
+  var tela = estado.partida ? (estado.rascunho ? "contagem" : "placar") : "inicio";
+  var aberta = null; // rodada expandida no histórico
+  var mostrados = {}; // últimos valores exibidos, para animar mudanças
+  var placarMostrado = null;
+  var desfeita = null;
+
+  /* ---------- utilidades ---------- */
+  function fmt(n) { return Number(n || 0).toLocaleString("pt-BR"); }
+  function sinal(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n)); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function nome(i) { return estado.partida ? esc(estado.partida.jogadores[i]) : ""; }
+  function tag(i) { return '<span class="naipe c' + i + '">' + NAIPE[i] + "</span>"; }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function reduzMov() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* ---------- persistência neste aparelho ---------- */
+  function carregarLocal() {
+    try { var s = localStorage.getItem(CHAVE); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  }
+  function salvar() {
+    estado.atualizadoEm = Date.now();
+    try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {}
+  }
+
+  /* Mantém a tela acesa durante a partida, quando o aparelho permitir. */
+  var trava = null;
+  function manterAcesa() {
+    try {
+      if (trava || !navigator.wakeLock || document.visibilityState !== "visible") return;
+      navigator.wakeLock.request("screen").then(function (t) { trava = t; t.addEventListener("release", function () { trava = null; }); }).catch(function () {});
+    } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", manterAcesa);
+
+  /* ---------- cálculo ---------- */
+  function totais() { return K.placar(estado.partida.rodadas).totais; }
+  function base() {
+    var p = K.placar(estado.partida.rodadas);
+    var ed = estado.rascunho && estado.rascunho.editando;
+    return ed != null && p.linhas[ed] ? p.linhas[ed].antes : p.totais;
+  }
+
+  /* ---------- telas ---------- */
+  function render() {
+    fecharCamada();
+    if (tela === "inicio") renderInicio();
+    else if (tela === "contagem" && estado.rascunho) renderContagem();
+    else { tela = "placar"; renderPlacar(); }
+  }
+
+  function renderInicio() {
+    var ult = estado.arquivo.length ? estado.arquivo[estado.arquivo.length - 1].jogadores : ["", ""];
+    $app.innerHTML =
+      '<div class="setup">' +
+      '<h1><span>Placar da</span>Canastra</h1>' +
+      '<p class="dica">Quem vai jogar? Partida até 4.000 pontos.</p>' +
+      [0, 1].map(function (i) {
+        return '<label class="campo p' + i + '" for="nome' + i + '"><span class="naipe">' + NAIPE[i] + '</span>' +
+          '<input id="nome' + i + '" maxlength="18" autocomplete="off" placeholder="Jogador ' + (i + 1) + '" value="' + esc(ult[i] || "") + '"></label>';
+      }).join("") +
+      '<div class="bloco"><div class="regras">' +
+      "<span>3 a K</span><b>10</b><span>Ás</span><b>15</b><span>2 e Joker</span><b>50</b>" +
+      "<span>Três preto na mão do adversário</span><b>100</b><span>Batida</span><b>100</b>" +
+      "<span>Canastra limpa (7 cartas, +100 por carta)</span><b>200+</b><span>Canastra suja (com 2)</span><b>100</b>" +
+      "</div></div></div>" +
+      acaoFixa('<button class="btn btn-pri" data-acao="comecar">Começar partida</button>');
+  }
+
+  function acaoFixa(html) { return '<div class="acao"><div class="acao-in">' + html + "</div></div>"; }
+
+  function renderPlacar() {
+    var p = estado.partida;
+    var pl = K.placar(p.rodadas);
+    var t = pl.totais;
+    var v = K.vencedor(t);
+    var lider = t[0] === t[1] ? -1 : t[0] > t[1] ? 0 : 1;
+    var meta = K.CONFIG.meta;
+
+    var scores = [0, 1].map(function (i) {
+      var falta = Math.max(0, meta - t[i]);
+      var ab = K.aberturaMinima(t[i]);
+      return '<section class="score p' + i + (lider === i && p.rodadas.length ? " lider" : "") + '">' +
+        '<div class="score-nome">' + '<span class="naipe">' + NAIPE[i] + "</span><span>" + nome(i) + "</span></div>" +
+        '<div class="score-num num" data-placar="' + i + '">' + fmt(t[i]) + "</div>" +
+        '<div class="barra" aria-hidden="true"><i style="width:' + Math.min(100, Math.max(0, t[i] / meta * 100)) + '%"></i><b title="2.000"></b></div>' +
+        '<div class="score-foot"><span>' + (falta ? "faltam " + fmt(falta) : "chegou a 4.000") + "</span></div>" +
+        (ab ? '<span class="badge">Abertura mín. ' + ab + "</span>" : "") +
+        "</section>";
+    }).join("");
+
+    var banner = "";
+    if (v && v.empate) banner = '<div class="banner"><span>Empate acima de 4.000 pontos.</span></div>';
+    else if (v) banner = '<div class="banner ganhou"><span>' + NAIPE[v.jogador] + " " + nome(v.jogador) + " venceu a partida!</span></div>";
+
+    var hist = p.rodadas.length
+      ? '<ol class="lista">' + pl.linhas.map(function (l, i) { return itemHist(p.rodadas[i], l, i); }).reverse().join("") + "</ol>"
+      : '<div class="vazio">Nenhuma rodada ainda.<br>Toque em <b>Contar rodada</b> ao fim da mão.</div>';
+
+    var acao;
+    if (estado.rascunho) acao = '<button class="btn btn-sec" data-acao="descartar" aria-label="Descartar contagem">Descartar</button><button class="btn btn-pri" data-acao="continuar">Continuar contagem</button>';
+    else if (v && !v.empate) acao = '<button class="btn btn-pri" data-acao="nova">Nova partida</button>';
+    else acao = '<button class="btn btn-pri" data-acao="contar">Contar rodada ' + (p.rodadas.length + 1) + "</button>";
+
+    $app.innerHTML =
+      '<header class="top"><div class="marca">Canastra <small>' + (p.rodadas.length ? p.rodadas.length + (p.rodadas.length > 1 ? " rodadas" : " rodada") : "partida nova") + "</small></div>" +
+      '<button class="icone" data-acao="menu" aria-label="Menu">☰</button></header>' +
+      '<div class="placar">' + scores + "</div>" + banner +
+      '<div class="secao-t"><h2>Rodadas</h2>' +
+      (p.rodadas.length ? '<button class="btn-txt" data-acao="desfazer">↶ Desfazer última</button>' : "") + "</div>" +
+      hist + acaoFixa(acao);
+
+    animarPlacar(t);
+  }
+
+  function itemHist(r, l, i) {
+    var c = l.calculo;
+    var html = '<li class="rod"><button class="rod-head" data-acao="abrir" data-i="' + i + '" aria-expanded="' + (aberta === i) + '">' +
+      '<span class="rod-n">' + (i + 1) + "</span>" +
+      '<span class="rod-bat">' + NAIPE[r.batedor] + " " + nome(r.batedor) + " bateu</span>" +
+      '<span class="rod-pts c0">' + sinal(c[0].total) + "</span>" +
+      '<span class="rod-pts c1">' + sinal(c[1].total) + "</span></button>";
+    if (aberta === i) {
+      html += '<div class="rod-det">' + tabela(c, l.antes, l.depois) +
+        '<button class="btn btn-sec" data-acao="corrigir" data-i="' + i + '">Corrigir esta rodada</button></div>';
+    }
+    return html + "</li>";
+  }
+
+  function tabela(c, antes, depois) {
+    var linha = function (rot, a, b, extra) { return "<tr" + (extra || "") + "><td>" + rot + "</td><td>" + a + "</td><td>" + b + "</td></tr>"; };
+    var det = c[0].canastras != null;
+    var pen = c[0].penalidade || c[1].penalidade;
+    return '<table class="tab"><thead><tr><th></th><th>' + tag(0) + " " + nome(0) + "</th><th>" + tag(1) + " " + nome(1) + "</th></tr></thead><tbody>" +
+      linha("Batida", fmt(c[0].batida), fmt(c[1].batida)) +
+      linha("Mesa", fmt(c[0].mesa), fmt(c[1].mesa)) +
+      (det ? linha("canastras", fmt(c[0].canastras), fmt(c[1].canastras), ' class="sub"') +
+        linha("três vermelhos", fmt(c[0].tresVermelhos), fmt(c[1].tresVermelhos), ' class="sub"') : "") +
+      (det ? linha("Cartas baixadas", fmt(c[0].cartasMesa), fmt(c[1].cartasMesa)) +
+        linha("Mão do adversário", fmt(c[0].maoAdversario), fmt(c[1].maoAdversario))
+        : linha("Cartas", fmt(c[0].cartasMesa + c[0].maoAdversario), fmt(c[1].cartasMesa + c[1].maoAdversario))) +
+      (pen ? linha("Penalidade do morto", sinal(-c[0].penalidade), sinal(-c[1].penalidade)) : "") +
+      linha("Total da rodada", '<span class="c0">' + sinal(c[0].total) + '</span>', '<span class="c1">' + sinal(c[1].total) + "</span>", ' class="tot"') +
+      linha("Placar", fmt(antes[0]) + " → <b>" + fmt(depois[0]) + "</b>", fmt(antes[1]) + " → <b>" + fmt(depois[1]) + "</b>", ' class="acum"') +
+      "</tbody></table>";
+  }
+
+  function animarPlacar(t) {
+    var de = placarMostrado || t;
+    placarMostrado = t.slice();
+    [0, 1].forEach(function (i) {
+      var el = $app.querySelector('[data-placar="' + i + '"]');
+      if (!el || de[i] === t[i] || reduzMov()) return;
+      var ini = performance.now(), a = de[i], b = t[i];
+      el.classList.add("bump");
+      (function passo(agora) {
+        var k = Math.min(1, (agora - ini) / 700);
+        k = 1 - Math.pow(1 - k, 3);
+        el.textContent = fmt(Math.round(a + (b - a) * k));
+        if (k < 1) requestAnimationFrame(passo);
+      })(ini);
+    });
+  }
+
+  /* ---------- contagem: uma tela, na ordem batida → mesa → cartas → resultado ---------- */
+  var CAMPOS = ["mesa.0", "mesa.1", "cartas.0", "cartas.1"];
+
+  function renderContagem() {
+    var rs = estado.rascunho, r = rs.rodada;
+    var nRod = rs.editando != null ? rs.editando + 1 : estado.partida.rodadas.length + 1;
+    var bat = r.batedor === 0 || r.batedor === 1;
+
+    var live = [0, 1].map(function (i) {
+      return '<div class="live-p p' + i + '"><span class="live-nome">' + NAIPE[i] + " " + nome(i) + '</span><strong class="live-rod num" data-out="rod-' + i + '">+0</strong>' +
+        '<span class="live-tot" data-out="tot-' + i + '"></span></div>';
+    }).join("");
+
+    var bater = [0, 1].map(function (i) {
+      return '<button class="p' + i + (r.batedor === i ? " sel" : "") + '" data-acao="bater" data-j="' + i + '" aria-pressed="' + (r.batedor === i) + '">' +
+        '<span class="grande">' + NAIPE[i] + '</span><span class="nm">' + nome(i) + '</span><span class="mais">+100</span></button>';
+    }).join("");
+
+    var corpo =
+      '<section class="etapa"><h2 class="etapa-t"><span>1</span>Quem bateu? <small>ganha 100</small></h2><div class="bater">' + bater + "</div></section>" +
+      '<section class="etapa"><h2 class="etapa-t"><span>2</span>Pontos da mesa <small>canastras e três vermelhos</small></h2><div class="par">' + campo("mesa.0") + campo("mesa.1") + "</div></section>" +
+      '<section class="etapa"><h2 class="etapa-t"><span>3</span>Pontos das cartas <small>baixadas + o que ficou na mão do adversário</small></h2><div class="par">' + campo("cartas.0") + campo("cartas.1") + "</div>" +
+      "</section>" +
+      '<section class="etapa"><h2 class="etapa-t"><span>4</span>Resultado</h2><div class="bloco" id="resultado"></div><div class="etapa" id="avisos"></div></section>';
+
+    var rodape = bat
+      ? '<button class="btn btn-pri" data-acao="confirmar">' + (rs.editando != null ? "Salvar correção" : "Confirmar rodada") + "</button>"
+      : '<button class="btn btn-pri" disabled>Escolha quem bateu</button>';
+
+    var foco = document.activeElement && document.activeElement.id;
+    $app.innerHTML =
+      '<header class="top"><div class="marca">Rodada ' + nRod + " <small>" + (rs.editando != null ? "corrigindo" : "contagem") + "</small></div>" +
+      '<button class="icone" data-acao="sair" aria-label="Voltar ao placar">✕</button></header>' +
+      '<div class="live">' + live + "</div>" + corpo + acaoFixa(rodape);
+    mostrados = {};
+    atualizar(true);
+    if (foco && document.getElementById(foco)) document.getElementById(foco).focus();
+  }
+
+  function valorCampo(key) {
+    var r = estado.rascunho.rodada, s = key.split(".");
+    return s[0] === "mao" ? r.mao : r.pontos[+s[1]][s[0]];
+  }
+  function definirCampo(key, v) {
+    var r = estado.rascunho.rodada, s = key.split(".");
+    if (s[0] === "mao") r.mao = v; else r.pontos[+s[1]][s[0]] = v;
+  }
+
+  function campo(key) {
+    var r = estado.rascunho.rodada, s = key.split("."), v = valorCampo(key), rot, cor;
+    if (s[0] === "mao") {
+      var perd = 1 - r.batedor;
+      cor = r.batedor;
+      rot = "Ficou na mão de " + NAIPE[perd] + " " + nome(perd) + "<small>vai para " + NAIPE[r.batedor] + " " + nome(r.batedor) + " · três preto vale 100</small>";
+    } else {
+      cor = +s[1];
+      rot = NAIPE[cor] + " " + nome(cor);
+    }
+    var id = "c-" + key.replace(".", "-");
+    return '<label class="pin p' + cor + (s[0] === "mao" ? " pin-mao" : "") + '" for="' + id + '"><span class="pin-rot">' + rot + "</span>" +
+      '<input id="' + id + '" data-campo="' + key + '" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" autocomplete="off" placeholder="0" value="' + (v ? fmt(v) : "") + '"></label>';
+  }
+
+  /* Atualiza placar ao vivo e resultado sem redesenhar os campos. */
+  function atualizar(primeira) {
+    var rs = estado.rascunho;
+    if (!rs) return;
+    var r = rs.rodada, c = K.calcularRodada(r), antes = base();
+    var depois = [antes[0] + c[0].total, antes[1] + c[1].total];
+    [0, 1].forEach(function (i) {
+      saida("rod-" + i, sinal(c[i].total) || "0", primeira);
+      saida("tot-" + i, "placar " + fmt(depois[i]), primeira);
+    });
+    var res = document.getElementById("resultado");
+    if (res) res.innerHTML = tabela(c, antes, depois);
+    var av = document.getElementById("avisos");
+    if (!av) return;
+    var html = K.avisosRodada(r).filter(function (a) { return a.tipo !== "erro"; }).map(function (a) {
+      return '<div class="aviso">' + (a.jogador != null ? NAIPE[a.jogador] + " " + nome(a.jogador) + ": " : "") + esc(a.texto) + "</div>";
+    }).join("");
+    if (r.batedor === 0 || r.batedor === 1) {
+      [0, 1].forEach(function (i) {
+        if (antes[i] < K.CONFIG.limiteAbertura && depois[i] >= K.CONFIG.limiteAbertura) html += '<div class="banner"><span>' + NAIPE[i] + " " + nome(i) + " passa de 2.000: abertura mínima de 150 pontos.</span></div>";
+      });
+      var v = K.vencedor(depois);
+      if (v && !v.empate) html += '<div class="banner ganhou"><span>' + NAIPE[v.jogador] + " " + nome(v.jogador) + " chega a 4.000 e vence!</span></div>";
+    }
+    av.innerHTML = html;
+  }
+
+  function saida(k, val, primeira) {
+    var el = $app.querySelector('[data-out="' + k + '"]');
+    if (!el) return;
+    if (el.textContent !== val) {
+      el.textContent = val;
+      if (!primeira && mostrados[k] !== undefined && !reduzMov()) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+    }
+    mostrados[k] = val;
+  }
+
+  function iniciarContagem(editando) {
+    var rodada = editando != null ? K.paraTotais(estado.partida.rodadas[editando]) : K.rodadaVazia();
+    estado.rascunho = { rodada: rodada, editando: editando };
+    tela = "contagem";
+    salvar();
+    manterAcesa();
+    render();
+  }
+
+  function confirmarRodada() {
+    var rs = estado.rascunho, p = estado.partida;
+    if (rs.rodada.batedor !== 0 && rs.rodada.batedor !== 1) return;
+    var antes = totais();
+    var vAntes = K.vencedor(antes);
+    var nRod;
+    if (rs.editando != null) {
+      rs.rodada.em = p.rodadas[rs.editando].em;
+      rs.rodada.corrigidaEm = Date.now();
+      p.rodadas[rs.editando] = rs.rodada;
+      nRod = rs.editando + 1;
+    } else {
+      rs.rodada.em = Date.now();
+      p.rodadas.push(rs.rodada);
+      nRod = p.rodadas.length;
+    }
+    var editou = rs.editando != null;
+    estado.rascunho = null;
+    aberta = null;
+    salvar();
+    tela = "placar";
+    render();
+    var depois = totais();
+    var v = K.vencedor(depois);
+    var msgs = [];
+    [0, 1].forEach(function (i) {
+      if (antes[i] < K.CONFIG.limiteAbertura && depois[i] >= K.CONFIG.limiteAbertura) msgs.push(NAIPE[i] + " " + estado.partida.jogadores[i] + " passou de 2.000: abertura mínima de 150.");
+    });
+    if (v && !(vAntes && vAntes.jogador === v.jogador)) mostrarVitoria(v, depois);
+    toast(msgs.length ? msgs.join(" ") : editou ? "Rodada " + nRod + " corrigida." : "Rodada " + nRod + " somada ao placar.", null, msgs.length ? 7000 : 2600);
+  }
+
+  /* ---------- camadas ---------- */
+  function fecharCamada() { $camada.innerHTML = ""; }
+  var aoConfirmar = null;
+  function confirmar(titulo, texto, botao, fn, perigo) {
+    aoConfirmar = fn;
+    $camada.innerHTML = '<div class="veu dialogo" data-acao="fechar-fundo"><div class="folha" role="dialog" aria-modal="true">' +
+      "<h2>" + titulo + "</h2><p>" + texto + '</p><div class="botoes"><button class="btn btn-sec" data-acao="fechar">Cancelar</button>' +
+      '<button class="btn ' + (perigo ? "btn-perigo" : "btn-pri") + '" data-acao="ok">' + botao + "</button></div></div></div>";
+    var b = $camada.querySelector('[data-acao="fechar"]');
+    if (b) b.focus();
+  }
+
+  function mostrarVitoria(v, t) {
+    var corpo = v.empate
+      ? '<span class="grande">♥♠</span><h2>Empate acima de 4.000</h2><p class="dica">' + fmt(t[0]) + " a " + fmt(t[1]) + "</p>"
+      : '<span class="grande c' + v.jogador + '">' + NAIPE[v.jogador] + "</span><h2>" + nome(v.jogador) + ' venceu!</h2><div class="placar-final"><span class="c0">' + fmt(t[0]) + '</span> × <span class="c1">' + fmt(t[1]) + "</span></div>";
+    $camada.innerHTML = '<div class="veu dialogo"><div class="folha vitoria" role="dialog" aria-modal="true">' + corpo +
+      '<div class="botoes" style="width:100%"><button class="btn btn-sec" data-acao="fechar">Ver placar</button><button class="btn btn-pri" data-acao="nova">Nova partida</button></div></div></div>';
+  }
+
+  function abrirMenu() {
+    var arq = estado.arquivo.slice().reverse().slice(0, 8).map(function (a) {
+      var dt = new Date(a.criadaEm).toLocaleDateString("pt-BR");
+      return '<div class="linha"><div class="rot"><b>' + esc(a.jogadores[0]) + " × " + esc(a.jogadores[1]) + "</b><small>" + dt + " · " + a.rodadas.length + " rodadas</small></div>" +
+        '<span class="pts"><span class="c0">' + fmt(a.totais[0]) + '</span> <span class="c1">' + fmt(a.totais[1]) + "</span></span></div>";
+    }).join("");
+    $camada.innerHTML = '<div class="veu" data-acao="fechar-fundo"><div class="folha" role="dialog" aria-modal="true">' +
+      '<div class="secao-t"><h2>Partida</h2><button class="icone" data-acao="fechar" aria-label="Fechar">✕</button></div>' +
+      [0, 1].map(function (i) {
+        return '<label class="campo p' + i + '" for="ren' + i + '"><span class="naipe">' + NAIPE[i] + '</span><input id="ren' + i + '" maxlength="18" data-renomear="' + i + '" value="' + nome(i) + '" aria-label="Nome do jogador ' + (i + 1) + '"></label>';
+      }).join("") +
+      '<button class="btn btn-sec" data-acao="nova">Nova partida</button>' +
+      '<div class="bloco"><div class="bloco-t"><h3>Valores</h3></div><div class="regras">' +
+      "<span>3 a K</span><b>10</b><span>Ás</span><b>15</b><span>2 e Joker</span><b>50</b>" +
+      "<span>Três preto na mão do adversário (para quem bateu)</span><b>100</b>" +
+      "<span>Três vermelho com canastra / sem</span><b>100 / 10</b><span>Batida</span><b>100</b>" +
+      "<span>Canastra limpa ou com Joker: 7 / 8 / 9 / 10 cartas</span><b>200 / 300 / 400 / 500</b>" +
+      "<span>Canastra com 2 de curinga</span><b>100</b><span>Abertura a partir de 2.000</span><b>150</b>" +
+      "<span>Penalidade por não pegar o morto</span><b>" + K.CONFIG.penalidadeMorto + " (a definir)</b></div></div>" +
+      (arq ? '<div class="bloco"><div class="bloco-t"><h3>Partidas anteriores</h3></div>' + arq + "</div>" : "") +
+      '<p class="dica">' + "Salvo automaticamente neste aparelho." + "</p>" +
+      "</div></div>";
+  }
+
+  var tToast = null;
+  function toast(msg, acao, ms) {
+    clearTimeout(tToast);
+    $toast.innerHTML = '<div class="toast" role="status"><span>' + esc(msg) + "</span>" + (acao ? '<button data-acao="' + acao[0] + '">' + acao[1] + "</button>" : "") + "</div>";
+    tToast = setTimeout(function () { $toast.innerHTML = ""; }, ms || 2600);
+  }
+
+  /* ---------- ações ---------- */
+  var acoes = {
+    comecar: function () {
+      var n = [0, 1].map(function (i) { var v = document.getElementById("nome" + i).value.trim(); return v || "Jogador " + (i + 1); });
+      estado.partida = { id: "p" + Date.now().toString(36), jogadores: n, rodadas: [], criadaEm: Date.now() };
+      estado.rascunho = null;
+      placarMostrado = null;
+      tela = "placar";
+      salvar();
+      manterAcesa();
+      render();
+    },
+    contar: function () { iniciarContagem(null); },
+    continuar: function () { tela = "contagem"; manterAcesa(); render(); },
+    descartar: function () {
+      confirmar("Descartar a contagem?", "Os números desta rodada ainda não foram somados e serão perdidos.", "Descartar", function () {
+        estado.rascunho = null; salvar(); render();
+      }, true);
+    },
+    sair: function () { tela = "placar"; render(); },
+    menu: abrirMenu,
+    fechar: fecharCamada,
+    ok: function () { var fn = aoConfirmar; aoConfirmar = null; fecharCamada(); if (fn) fn(); },
+    abrir: function (b) { var i = +b.dataset.i; aberta = aberta === i ? null : i; renderPlacar(); },
+    corrigir: function (b) { iniciarContagem(+b.dataset.i); },
+    desfazer: function () {
+      var n = estado.partida.rodadas.length;
+      confirmar("Desfazer a rodada " + n + "?", "Os pontos dela saem do placar. Você pode refazer logo em seguida.", "Desfazer", function () {
+        desfeita = estado.partida.rodadas.pop();
+        aberta = null;
+        salvar();
+        render();
+        toast("Rodada " + n + " desfeita.", ["refazer", "Refazer"], 6000);
+      }, true);
+    },
+    refazer: function () {
+      if (!desfeita) return;
+      estado.partida.rodadas.push(desfeita);
+      desfeita = null;
+      salvar();
+      render();
+      toast("Rodada " + estado.partida.rodadas.length + " restaurada.");
+    },
+    nova: function () {
+      confirmar("Começar nova partida?", "A partida atual fica guardada em Partidas anteriores.", "Nova partida", function () {
+        var p = estado.partida;
+        if (p && p.rodadas.length) estado.arquivo.push({ id: p.id, jogadores: p.jogadores, rodadas: p.rodadas, criadaEm: p.criadaEm, totais: totais(), encerradaEm: Date.now() });
+        estado.partida = null;
+        estado.rascunho = null;
+        placarMostrado = null;
+        tela = "inicio";
+        salvar();
+        render();
+      });
+    },
+    bater: function (b) {
+      var r = estado.rascunho.rodada, primeira = r.batedor !== 0 && r.batedor !== 1;
+      r.batedor = +b.dataset.j;
+      salvar();
+      renderContagem();
+      if (primeira && !r.pontos[0].mesa) { var c = document.getElementById("c-mesa-0"); if (c) c.focus(); }
+    },
+    confirmar: confirmarRodada,
+  };
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-acao]");
+    if (!b) return;
+    var a = b.dataset.acao;
+    if (a === "fechar-fundo") { if (e.target === b) fecharCamada(); return; }
+    if (acoes[a]) acoes[a](b);
+  });
+
+  /* Campos de pontos: só números, exibidos como 1.250. */
+  document.addEventListener("input", function (e) {
+    var k = e.target.getAttribute && e.target.getAttribute("data-campo");
+    if (!k || !estado.rascunho) return;
+    var dig = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 5);
+    var n = dig ? parseInt(dig, 10) : 0;
+    definirCampo(k, n);
+    e.target.value = dig ? fmt(n) : "";
+    atualizar(false);
+    salvar();
+  });
+  document.addEventListener("focusin", function (e) {
+    if (e.target.getAttribute && e.target.getAttribute("data-campo")) setTimeout(function () { try { e.target.select(); } catch (x) {} }, 0);
+  });
+
+  document.addEventListener("change", function (e) {
+    var i = e.target.getAttribute && e.target.getAttribute("data-renomear");
+    if (i == null || !estado.partida) return;
+    var v = e.target.value.trim();
+    estado.partida.jogadores[+i] = v || "Jogador " + (+i + 1);
+    salvar();
+    renderPlacar();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && $camada.innerHTML) fecharCamada();
+    if (e.key === "Enter" && tela === "inicio" && e.target.tagName === "INPUT") acoes.comecar();
+    var k = e.key === "Enter" && e.target.getAttribute && e.target.getAttribute("data-campo");
+    if (k) {
+      e.preventDefault();
+      var seg = CAMPOS.slice(CAMPOS.indexOf(k) + 1).map(function (x) { return document.getElementById("c-" + x.replace(".", "-")); }).filter(Boolean)[0];
+      if (seg) seg.focus(); else e.target.blur();
+    }
+  });
+
+  render();
+})();
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+</script>
+</body>
+</html>

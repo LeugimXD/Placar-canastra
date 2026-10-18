@@ -1,0 +1,5 @@
+{
+  "name": "placar-canastra",
+  "private": true,
+  "scripts": { "test": "node --test" }
+}
